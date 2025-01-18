@@ -70,7 +70,9 @@ class FaissKBService(KBService):
         score_threshold: float = Settings.kb_settings.SCORE_THRESHOLD,
     ) -> List[Tuple[Document, float]]:
         with self.load_vector_store().acquire() as vs:
-            retriever = get_Retriever("ensemble").from_vectorstore(
+            # retriever = get_Retriever("ensemble")
+            retriever = get_Retriever("vectorstoreMMR")
+            retriever = retriever.from_vectorstore(
                 vs,
                 top_k=top_k,
                 score_threshold=score_threshold,
