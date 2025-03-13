@@ -1,5 +1,6 @@
 import operator
 import os
+import time
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
@@ -206,8 +207,10 @@ class KBService(ABC):
     ) -> List[Document]:
         # if not self.check_embed_model()[0]:
         #     return []
-
+        start_time = time.time()
         docs = self.do_search(query, top_k, score_threshold)
+        end_time = time.time()
+        logger.info(f"搜索文档耗时：{end_time - start_time}s")
         return docs
 
     def get_doc_by_ids(self, ids: List[str]) -> List[Document]:

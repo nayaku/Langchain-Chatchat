@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio, json
+import time
 import uuid
 from typing import AsyncIterable, List, Optional, Literal
 
@@ -25,6 +26,17 @@ from chatchat.server.utils import (wrap_done, get_ChatOpenAI, get_default_llm,
 
 
 logger = build_logger()
+
+
+def log_interval_time_func():
+    pre_time = time.time()
+
+    def log_interval_time(message: str):
+        nonlocal pre_time
+        logger.info(message + ":" + str(time.time() - pre_time) + "s")
+        pre_time = time.time()
+
+    return log_interval_time
 
 
 async def kb_chat(query: str = Body(..., description="用户输入", examples=["你好"]),
@@ -60,6 +72,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", examples=["
                 return_direct: bool = Body(False, description="直接返回检索结果，不送入 LLM"),
                 request: Request = None,
                 ):
+    log_time_fun = log_interval_time_func()
     if mode == "local_kb":
         kb = KBServiceFactory.get_service_by_name(kb_name)
         if kb is None:
@@ -71,6 +84,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", examples=["
 
             history = [History.from_data(h) for h in history]
 
+            log_time_fun("准备请求文档")
             if mode == "local_kb":
                 kb = KBServiceFactory.get_service_by_name(kb_name)
                 # ok, msg = kb.check_embed_model()
@@ -101,6 +115,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", examples=["
             else:
                 docs = []
                 source_documents = []
+            log_time_fun("查询完成文档")
             # import rich
             # rich.print(dict(
             #     mode=mode,
@@ -190,6 +205,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", examples=["
                     model=model,
                     docs=source_documents,
                 )
+                log_time_fun('首次返回')
                 yield ret.model_dump_json()
 
                 async for token in callback.aiter():
@@ -213,6 +229,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", examples=["
                     model=model,
                 )
                 yield ret.model_dump_json()
+            log_time_fun('完成全部补全')
             await task
         except asyncio.exceptions.CancelledError:
             logger.warning("streaming progress has been interrupted by user.")
@@ -221,6 +238,7 @@ async def kb_chat(query: str = Body(..., description="用户输入", examples=["
             logger.error(f"error in knowledge chat: {e}")
             yield {"data": json.dumps({"error": str(e)})}
             return
+        log_time_fun('完成任务')
 
     if stream:
         return EventSourceResponse(knowledge_base_chat_iterator())
