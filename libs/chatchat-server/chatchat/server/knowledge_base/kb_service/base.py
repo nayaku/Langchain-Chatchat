@@ -204,8 +204,8 @@ class KBService(ABC):
         top_k: int = Settings.kb_settings.VECTOR_SEARCH_TOP_K,
         score_threshold: float = Settings.kb_settings.SCORE_THRESHOLD,
     ) -> List[Document]:
-        if not self.check_embed_model()[0]:
-            return []
+        # if not self.check_embed_model()[0]:
+        #     return []
 
         docs = self.do_search(query, top_k, score_threshold)
         return docs
